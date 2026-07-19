@@ -207,7 +207,35 @@ type=PATH msg=audit(1784485077.362:292): item=1 name="/etc/nginx/nginx.conf" ino
 type=PATH msg=audit(1784485077.362:292): item=0 name="/etc/nginx/" inode=393983 dev=fc:00 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0
 type=CWD msg=audit(1784485077.362:292): cwd="/home/sadmin"
 type=SYSCALL msg=audit(1784485077.362:292): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ffe0bd007ac a2=941 a3=1b6 items=2 ppid=26357 pid=26358 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts2 ses=1024 comm="touch" exe="/usr/bin/touch" subj=unconfined key="nginx_conf"
-``
+```
+Настраиваем отправку адит логов на LOG сервер
+```
+sudo nano /etc/rsyslog.d/10-audit.conf
+
+#Содержимое
+module(load="imfile" PollingInterval="10")
+
+input(type="imfile"
+      File="/var/log/audit/audit.log"
+      Tag="auditd"
+      Severity="info"
+      Facility="local7")
+
+# Отправляем на удаленный сервер
+if $syslogtag contains 'auditd' then {
+    action(type="omfwd" target="192.168.50.226" port="514" protocol="tcp")
+    stop
+}
+
+в результате на ЛОГ сервере видим
+root@lp-ubn7-elk:/home/sadmin# cat  /var/log/rsyslog/lp-ubn1/auditd.log | grep nginx
+2026-07-19T18:43:47+00:00 lp-ubn1 auditd type=CONFIG_CHANGE msg=audit(1784484937.091:271): auid=1000 ses=1024 subj=unconfined op=add_rule key="nginx_conf" list=4 res=1#035AUID="sadmin"
+2026-07-19T18:43:47+00:00 lp-ubn1 auditd type=SYSCALL msg=audit(1784485077.362:292): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ffe0bd007ac a2=941 a3=1b6 items=2 ppid=26357 pid=26358 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts2 ses=1024 comm="touch" exe="/usr/bin/touch" subj=unconfined key="nginx_conf"#035ARCH=x86_64 SYSCALL=openat AUID="sadmin" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root"
+2026-07-19T18:43:47+00:00 lp-ubn1 auditd type=PATH msg=audit(1784485077.362:292): item=0 name="/etc/nginx/" inode=393983 dev=fc:00 mode=040755 ouid=0 ogid=0 rdev=00:00 nametype=PARENT cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0#035OUID="root" OGID="root"
+2026-07-19T18:43:47+00:00 lp-ubn1 auditd type=PATH msg=audit(1784485077.362:292): item=1 name="/etc/nginx/nginx.conf" inode=393992 dev=fc:00 mode=0100644 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi=0 cap_fe=0 cap_fver=0 cap_frootid=0#035OUID="root" OGID="root"
+2026-07-19T18:43:47+00:00 lp-ubn1 auditd type=SYSCALL msg=audit(1784486174.705:331): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=7ffeb71ce7ac a2=941 a3=1b6 items=2 ppid=26388 pid=26389 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts2 ses=1024 comm="touch" exe="/usr/bin/touch" subj=unconfined key="nginx_conf"#035ARCH=x86_64 SYSCALL=openat AUID="sadmin" UID="root" GI
+
+```
 
 
 
