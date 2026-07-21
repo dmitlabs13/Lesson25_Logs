@@ -389,6 +389,46 @@ output {
 ```
 sadmin@lp-ubn1:~$ sudo apt install ./filebeat_8.9.1_amd64_224190_e0af99__1-466156-b6f621.deb
 
+# настраиваем конфиг
+# ======================== Filebeat inputs =========================
+filebeat.inputs:
+
+- type: log
+  enabled: true
+  paths:
+    - /var/log/nginx/access.log
+    - /var/log/nginx/error.log
+  tags: ["nginx"]
+  fields:
+    service: nginx
+    server: lp-ubn1
+  fields_under_root: true
+
+# ======================== Output to Logstash ======================
+output.logstash:
+  hosts: ["192.168.50.226:5044"]
+  ssl:
+    enabled: false
+
+# ======================== Logging ================================
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+
+#в конфиг nginx добавляем хранение логов в файлах
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+#логи пишуться
+root@lp-ubn1:/home/sadmin# cat /var/log/nginx/access.log
+::1 - - [21/Jul/2026:20:23:49 +0000] "GET / HTTP/1.1" 403 162 "-" "curl/8.5.0"
+::1 - - [21/Jul/2026:20:24:38 +0000] "GET / HTTP/1.1" 403 162 "-" "curl/8.5.0"
+::1 - - [21/Jul/2026:20:24:38 +0000] "GET / HTTP/1.1" 403 162 "-" "curl/8.5.0"
 
 ```
 
