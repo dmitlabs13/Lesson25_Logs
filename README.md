@@ -238,6 +238,161 @@ root@lp-ubn7-elk:/home/sadmin# cat  /var/log/rsyslog/lp-ubn1/auditd.log | grep n
 ```
 
 
+## ELK
+
+установка
+```
+sadmin@lp-ubn7-elk:~/elk_dst$ sudo dpkg -i elasticsearch_8.9.1_amd64_224190_300799-466156-a5c8b3.deb
+[sudo] password for sadmin:
+Selecting previously unselected package elasticsearch.
+(Reading database ... 126552 files and directories currently installed.)
+Preparing to unpack elasticsearch_8.9.1_amd64_224190_300799-466156-a5c8b3.deb ...
+Creating elasticsearch group... OK
+Creating elasticsearch user... OK
+Unpacking elasticsearch (8.9.1) ...
+Setting up elasticsearch (8.9.1) ...
+--------------------------- Security autoconfiguration information ------------------------------
+
+Authentication and authorization are enabled.
+TLS for the transport and HTTP layers is enabled and configured.
+
+The generated password for the elastic built-in superuser is : iwUafYeOcibIr3JVqLQ5
+
+If this node should join an existing cluster, you can reconfigure this with
+'/usr/share/elasticsearch/bin/elasticsearch-reconfigure-node --enrollment-token <token-here>'
+after creating an enrollment token on your existing cluster.
+
+You can complete the following actions at any time:
+
+Reset the password of the elastic built-in superuser with
+'/usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic'.
+
+Generate an enrollment token for Kibana instances with
+ '/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana'.
+
+Generate an enrollment token for Elasticsearch nodes with
+'/usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s node'.
+
+-------------------------------------------------------------------------------------------------
+### NOT starting on installation, please execute the following statements to configure elasticsearch service to start automatically using systemd
+ sudo systemctl daemon-reload
+ sudo systemctl enable elasticsearch.service
+### You can start elasticsearch service by executing
+ sudo systemctl start elasticsearch.service
+
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl daemon-reload
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl status elasticsearch.service
+○ elasticsearch.service - Elasticsearch
+     Loaded: loaded (/usr/lib/systemd/system/elasticsearch.service; disabled; prese>
+     Active: inactive (dead)
+       Docs: https://www.elastic.co
+
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl start elasticsearch.service
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl enabled elasticsearch.service
+Unknown command verb 'enabled', did you mean 'enable'?
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl enable elasticsearch.service
+Created symlink /etc/systemd/system/multi-user.target.wants/elasticsearch.service → /usr/lib/systemd/system/elasticsearch.service.
+root@lp-ubn7-elk:/home/sadmin/elk_dst#
+
+
+#проверяем
+root@lp-ubn7-elk:/home/sadmin/elk_dst# curl -k -u elastic:iwUafYeOcibIr3JVqLQ5 https://localhost:9200
+{
+  "name" : "lp-ubn7-elk",
+  "cluster_name" : "elasticsearch",
+  "cluster_uuid" : "fXTE1RcARJuY2nU_o_iQcA",
+  "version" : {
+    "number" : "8.9.1",
+    "build_flavor" : "default",
+    "build_type" : "deb",
+    "build_hash" : "a813d015ef1826148d9d389bd1c0d781c6e349f0",
+    "build_date" : "2023-08-10T05:02:32.517455352Z",
+    "build_snapshot" : false,
+    "lucene_version" : "9.7.0",
+    "minimum_wire_compatibility_version" : "7.17.0",
+    "minimum_index_compatibility_version" : "7.0.0"
+  },
+  "tagline" : "You Know, for Search"
+}
+
+# ставим kibana
+root@lp-ubn7-elk:/home/sadmin/elk_dst# apt install ./kibana_8.9.1_amd64_224190_68eb0f__1-466156-1c2952.deb
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl daemon-reload
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl start kibana
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl enabl kibana
+Unknown command verb 'enabl', did you mean 'enable'?
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl enable kibana
+Created symlink /etc/systemd/system/multi-user.target.wants/kibana.service → /usr/lib/systemd/system/kibana.service.
+root@lp-ubn7-elk:/home/sadmin/elk_dst# systemctl status kibana
+● kibana.service - Kibana
+     Loaded: loaded (/usr/lib/systemd/system/kibana.service; enabled; preset: enabl>
+     Active: active (running) since Mon 2026-07-20 19:13:26 UTC; 21s ago
+       Docs: https://www.elastic.co
+   Main PID: 39229 (node)
+      Tasks: 11 (limit: 2263)
+     Memory: 409.2M (peak: 409.5M)
+        CPU: 12.239s
+     CGroup: /system.slice/kibana.service
+             └─39229 /usr/share/kibana/bin/../node/bin/node /usr/share/kibana/bin/.>
+
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: [2026-07-20T19:13:40.046+00:00][INFO ][p>
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: [2026-07-20T19:13:40.046+00:00][INFO ][p>
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: [2026-07-20T19:13:40.046+00:00][INFO ][p>
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: [2026-07-20T19:13:40.046+00:00][INFO ][p>
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: [2026-07-20T19:13:40.182+00:00][INFO ][h>
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: [2026-07-20T19:13:40.340+00:00][INFO ][p>
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: [2026-07-20T19:13:40.342+00:00][INFO ][p>
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: [2026-07-20T19:13:40.368+00:00][INFO ][r>
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: i Kibana has not been configured.
+Jul 20 19:13:40 lp-ubn7-elk kibana[39229]: Go to http://localhost:5601/?code=434512>
+
+
+# в конфиге kibana указываем
+server.host: 192.168.50.226
+systemctl restart kibana
+
+#кибана открылась
+<img width="609" height="584" alt="image" src="https://github.com/user-attachments/assets/ff2cb5d0-7743-43b5-94c6-c57ccd6c2a90" />
+# получаем токен, код, настраивается elastic
+
+# ставим logstash
+root@lp-ubn7-elk:/home/sadmin/elk_dst# apt install ./logstash_8.9.1_amd64_224190_e8ea1a__1-466156-c17c37.deb
+
+nano /etc/logstash/conf.d/input.conf
+
+# содержимое
+input {
+  beats {
+    port => 5044
+  }
+}
+
+nano /etc/logstash/conf.d/output.conf
+#содержимое
+output {
+  elasticsearch {
+    hosts => ["https://localhost:9200"]
+    ssl => true
+    ssl_certificate_verification => false
+    manage_template => false
+    index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+    user => elastic
+    password => "iwUafYeOcibIr3JVqLQ5"
+  }
+}
+
+
+
+```
+
+Ставим filebeat на сервер c nginx
+```
+sadmin@lp-ubn1:~$ sudo apt install ./filebeat_8.9.1_amd64_224190_e0af99__1-466156-b6f621.deb
+
+
+```
+
+
 
 
 
