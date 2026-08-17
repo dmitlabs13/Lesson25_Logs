@@ -47,9 +47,10 @@ sadmin@alp-ansible:~$ cat ./projects/alp/lesson25_logs/install_nginx.yml
 - на alp-log надо создать конфиг для приема данных с сервера alp-nginx-web, конфиг будет называться /etc/rsyslog.d/99-alp-nginx-web.conf
 - на alp-log надо помнеять конфиг etc/rsyslog.conf тем самым включить модули приема (UDP/TCP) надо будет раскомментировать
 #module(load="imudp")
-#input(type="imudp" port="514")
-#module(load="imtcp")
-#input(type="imtcp" port="514")
+
+#input(type="imudp" port="514")  
+#module(load="imtcp")  
+#input(type="imtcp" port="514")  
 ```
 
 
