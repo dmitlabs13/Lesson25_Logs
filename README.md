@@ -43,9 +43,22 @@ sadmin@alp-ansible:~$ cat ./projects/alp/lesson25_logs/install_nginx.yml
 ```
 
 Начну с пункта "1.2 Все критичные логи с web должны собираться и локально и удаленно. "  
-- на alp-nginx-web надо создать конфиг для настройки отправки критичных данных на сервер alp-log. это будет отдельный конфиг 99-crit.conf
+- на alp-nginx-web надо создать конфиг для настройки отправки критичных данных на сервер alp-log. это будет отдельный конфиг 73-to_alp-log.conf
+  ```
+  ---
+- name: настройка rsyslog на alp-nginx-web
+  hosts: gr_alp-nginx-web
+  become: yes
+  tasks:
+    - name: Создаем конфиг для отправки всех  критичных и выше сообщений на  alp-log
+      copy:
+        content: |
+          *.crit 192.168.50.217
+        dest: /etc/rsyslog.d/73-to_alp-log.conf
+        mode: '0644'
+  ```
 - на alp-log надо создать конфиг для приема данных с сервера alp-nginx-web, конфиг будет называться /etc/rsyslog.d/99-alp-nginx-web.conf
-- на alp-log надо помнеять конфиг etc/rsyslog.conf тем самым включить модули приема (UDP/TCP) надо будет раскомментировать  
+- на alp-log надо поменять конфиг etc/rsyslog.conf тем самым включить модули приема (UDP/TCP) надо будет раскомментировать:  
 #module(load="imudp")  
 #input(type="imudp" port="514")  
 #module(load="imtcp")  
