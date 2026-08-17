@@ -21,40 +21,24 @@ elk.
 
 ## Выполнение
 Сервера:  
-Сервер log - lp-ubn7-elk 192.168.50.226  
-Сервер web - lp-ubn1 192.168.50.238  
+Alp-ansible 192.168.50.221  
+Alp-nginx-web	192.168.50.219  
+Alp-log 192.168.50.217  
+Alp-elk 192.168.50.218 
 
-сервер web остался с какой-то прошлой лабораторной, nginx уже стоит
+playbook установки nginx
 ```
-root@lp-ubn1:/home/sadmin# systemctl status nginx
-WARNING: terminal is not fully functional
-Press RETURN to continue
-● nginx.service - A high performance web server and a reverse proxy server
-     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: enabled)
-     Active: active (running) since Mon 2026-07-13 18:07:15 UTC; 5 days ago
-       Docs: man:nginx(8)
-    Process: 2696 ExecStartPre=/usr/sbin/nginx -t -q -g daemon on; master_process on; (cod>
-    Process: 2723 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited,>
-   Main PID: 2724 (nginx)
-      Tasks: 2 (limit: 1055)
-     Memory: 1.5M (peak: 3.2M swap: 1.4M swap peak: 1.4M)
-        CPU: 19ms
-```
-проверили, что rsyslog установлен  
-```
-root@lp-ubn1:/home/sadmin# systemctl status nginx
-WARNING: terminal is not fully functional
-Press RETURN to continue
-● nginx.service - A high performance web server and a reverse proxy server
-     Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; preset: enabled)
-     Active: active (running) since Mon 2026-07-13 18:07:15 UTC; 5 days ago
-       Docs: man:nginx(8)
-    Process: 2696 ExecStartPre=/usr/sbin/nginx -t -q -g daemon on; master_process on; (cod>
-    Process: 2723 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited,>
-   Main PID: 2724 (nginx)
-      Tasks: 2 (limit: 1055)
-     Memory: 1.5M (peak: 3.2M swap: 1.4M swap peak: 1.4M)
-        CPU: 19ms
+sadmin@alp-ansible:~$ cat ./projects/alp/lesson25_logs/install_nginx.yml 
+---
+- name: Установка Nginx на веб-сервер
+  hosts: gr_alp-nginx-web
+  become: yes
+  tasks:
+    - name: Установить Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes    # обновить кэш apt перед установкой
 
 ```
 
