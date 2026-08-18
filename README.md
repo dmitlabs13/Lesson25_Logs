@@ -149,9 +149,68 @@ sadmin@alp-log:~$
 А вот здесь мы уже будем работать с логими именно nginx  
 То есть вообще все логи nginx отправляем на alp-log, но критичные еще дублируются на локальном сервере alp-nginx-web
  
+в конфиге nginx.conf приводим настройки к такому виду
+```
+error_log /var/log/nginx/error.log crit;
+error_log syslog:server=192.168.50.217:514,tag=nginx_error;
+# в блоке html
+access_log syslog:server=192.168.50.217:514,tag=nginx_access,severity=info combined;
+#   access_log /var/log/nginx/access.log;
+```
 
+делаем такой плейбук
+```
+- name: настройка логирования NGINX
+  hosts: alp-nginx-web
+  become: yes
+  tasks:
+    - name: копируем правильный конфиг
+      copy:
+        src: /projects/alp/lesson25_logs/nginx.conf
+        dest: /etc/nginx/nginx.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart nginx
 
+  handlers:
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
 
+# запускаем плейбук sudo ansible-playbook config_nginx.yml -k -k
+```
+
+видим что access логи пошли уже на сервер alp-log
+```
+sadmin@alp-log:~$ cat /var/log/rsyslog/alp-nginx-web/nginx_access.log 
+2026-08-18T14:51:25+00:00 alp-nginx-web nginx_access: ::1 - - [18/Aug/2026:14:51:25 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.5.0"
+2026-08-18T14:52:39+00:00 alp-nginx-web nginx_access: ::1 - - [18/Aug/2026:14:52:39 +0000] "GET /jkjk HTTP/1.1" 404 162 "-" "curl/8.5.0"
+2026-08-18T14:53:18+00:00 alp-nginx-web nginx_access: ::1 - - [18/Aug/2026:14:53:18 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.5.0"
+```
+
+перехожу к пункту "1.1 Настраиваем аудит, который будет отслеживать изменения конфигураций nginx"  
+делаем плейбук для установки и запуска auditd
+```
+---
+- name: Установка auditd
+  hosts: gr_alp-nginx-web
+  become: yes
+  tasks:
+    - name: Установить auditd
+      apt:
+        name: 
+          - auditd 
+          - audispd-plugins
+        state: present
+        update_cache: yes    # обновить кэш apt перед установкой
+    - name: Запустить и включить auditd
+      systemd:
+        name: auditd
+        state: started
+        enabled: yes
+#запускаем командой ansible-playbook install_auditd.yml -k -K
 ```
 
 
@@ -174,36 +233,6 @@ sadmin@alp-log:~$
 
 
 
-
-
-
-
-
-
-
-Меняем конфиг /etc/rsyslog.conf
-
-```
-# provides UDP syslog reception
-module(load="imudp")
-input(type="imudp" port="514")
-
-# provides TCP syslog reception
-module(load="imtcp")
-input(type="imtcp" port="514")
-
-```
-создаем шаблон RemoteLogs 
-```
-root@lp-ubn7-elk:/home/sadmin# nano /etc/rsyslog.d/99-remote.conf
-# с таким содержимым
-$template RemoteLogs,"/var/log/rsyslog/%HOSTNAME%/%PROGRAMNAME%.log"
-# Все логи пишем по шаблону
-*.* ?RemoteLogs
-# дальше ничего не обрабатываем
-& ~
-
-```
 
 # проверяем конфиши и перезагружаем rsyslog
 
