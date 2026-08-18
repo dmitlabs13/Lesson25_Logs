@@ -146,10 +146,10 @@ sadmin@alp-log:~$
 ```
 
 Переходим к пункту "1.3 Все логи с nginx должны уходить на удаленный сервер (локально только критичные)."  
-А вот здесь мы уже будем работать с логими именно nginx  
-То есть вообще все логи nginx отправляем на alp-log, но критичные еще дублируются на локальном сервере alp-nginx-web
+А вот здесь мы уже будем работать с логами именно nginx  
+То есть вообще все логи именно nginx отправляем на alp-log, но критичные еще дублируются(фактически остаются) на локальном сервере alp-nginx-web
  
-в конфиге nginx.conf приводим настройки к такому виду
+в конфиге nginx.conf приводим настройки к такому виду:
 ```
 error_log /var/log/nginx/error.log crit;
 error_log syslog:server=192.168.50.217:514,tag=nginx_error;
@@ -214,6 +214,84 @@ sadmin@alp-log:~$ cat /var/log/rsyslog/alp-nginx-web/nginx_access.log
         enabled: yes
 #запускаем командой ansible-playbook install_auditd.yml -k -K
 ```
+делаем файл nginx_changes.rules с нашим правилом 
+``` -w /etc/nginx/nginx.conf -p wa -k nginx_conf_changes ```
+
+делаем плейбук для отправки этого файла на сервер alp-nginx-web
+```
+---
+- name: настройка аудита конфига  NGINX
+  hosts: alp-nginx-web
+  become: yes
+  tasks:
+    - name: копируем файл правила аудита  конфига nginx
+      copy:
+        src: /home/sadmin/projects/alp/lesson25_logs/nginx_changes.rules
+        dest: /etc/audit/rules.d/nginx_changes.rules
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart auditd
+
+  handlers:
+    - name: restart auditd 
+      systemd:
+        name: auditd
+        state: restarted
+
+#запускаем командой ansible-playbook config_audit.yml -k -K
+```
+Поменяли конфиг nginx, в логе аудита видим  
+```
+sadmin@alp-nginx-web:~$ tail -f /var/log/audit/audit.log | grep nginx_conf
+type=SYSCALL msg=audit(1787075893.628:514): arch=c000003e syscall=257 success=yes exit=3 a0=ffffff9c a1=5b1208693eb0 a2=241 a3=1b6 items=2 ppid=20696 pid=20697 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts3 ses=991 comm="nano" exe="/usr/bin/nano" subj=unconfined key="nginx_conf_changes"ARCH=x86_64 SYSCALL=openat AUID="sadmin" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root"
+```
+
+Остался пункт "1.4 Логи аудита должны также уходить на удаленную систему"
+
+
+создаем файл 30-auditd.conf
+
+```
+input(type="imfile" File="/var/log/audit/audit.log" Tag="audit_log" Severity="info" Facility="local6")
+```
+
+меняем прошлый плейбук
+```
+---
+- name: настройка аудита конфига  NGINX
+  hosts: alp-nginx-web
+  become: yes
+  tasks:
+    - name: копируем файл конфига настроить rsyslog забирать логи аудита
+      copy:
+        src: /home/sadmin/projects/alp/lesson25_logs/30-auditd.conf
+        dest: /etc/rsyslog.d/30-auditd.conf
+        owner: root
+        group: root
+        mode: '0644'
+    - name: копируем файл правила аудита  конфига nginx
+      copy:
+        src: /home/sadmin/projects/alp/lesson25_logs/nginx_changes.rules
+        dest: /etc/audit/rules.d/nginx_changes.rules
+        owner: root
+        group: root
+        mode: '0644'
+      notify: restart auditd
+
+  handlers:
+    - name: restart auditd 
+      systemd:
+        name: auditd
+        state: restarted
+    - name: restart rsyslog 
+      systemd:
+        name: rsyslog
+        state: restarted
+
+```
+
+надо убедится что логи стали писаться в сислог на nginx
 
 
 
