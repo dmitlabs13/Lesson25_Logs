@@ -40,9 +40,13 @@ sadmin@alp-ansible:~$ cat ./projects/alp/lesson25_logs/install_nginx.yml
         state: present
         update_cache: yes    # обновить кэш apt перед установкой
 
+
 ```
 
-Начну с пункта "1.2 Все критичные логи с web должны собираться и локально и удаленно. "  
+Начну с пункта "1.2 Все критичные логи с web должны собираться и локально и удаленно.  
+Залание несколько двусмыслено, я его расцениваю - как вообще все критичные логи с этого сервера, а не только критичные логи NGINX. Потому как в этом пункте четко сказано "Все критичные логи с web"
+
+
 - на alp-nginx-web надо создать конфиг для настройки отправки критичных данных на сервер alp-log. это будет отдельный конфиг 73-to_alp-log.conf
 ```  
 ---
@@ -57,15 +61,97 @@ sadmin@alp-ansible:~$ cat ./projects/alp/lesson25_logs/install_nginx.yml
         dest: /etc/rsyslog.d/73-to_alp-log.conf
         mode: '0644'
       
+# запускаем такой командой ansible-playbook config_rsyslog_alp-nginx-web.yml -k -K
 ```
 
 
-- на alp-log надо создать конфиг для приема данных с сервера alp-nginx-web, конфиг будет называться /etc/rsyslog.d/99-alp-nginx-web.conf
+- на alp-log надо создать конфиг для приема данных с сервера alp-nginx-web, конфиг будет называться /etc/rsyslog.d/98-alp-log.conf
+```
+---
+- name: настройка rsyslog на alp-log
+  hosts: gr_alp-log
+  become: yes
+  tasks:
+    - name: Создаем конфиг для внешних логов
+      copy:
+        content: |
+          $template RemoteLogs,"/var/log/rsyslog/%HOSTNAME%/%PROGRAMNAME%.log"
+          # Все логи пишем по шаблону
+          *.* ?RemoteLogs
+          # дальше ничего не обрабатываем
+          & ~
+        dest: /etc/rsyslog.d/98-alp-nginx-web.conf
+        mode: '0644'
+      
+# запускаем такой командой ansible-playbook config_98-alp-log.yml -k -K
+```
 - на alp-log надо поменять конфиг etc/rsyslog.conf тем самым включить модули приема (UDP/TCP) надо будет раскомментировать:  
 #module(load="imudp")  
 #input(type="imudp" port="514")  
 #module(load="imtcp")  
-#input(type="imtcp" port="514")  
+#input(type="imtcp" port="514")
+
+```
+---
+- name: Включить удаленный прием логов в rsyslog
+  hosts: alp-log
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Раскомментировать модуль UDP
+      lineinfile:
+        path: /etc/rsyslog.conf
+        regexp: '^#module\(load="imudp"\)'
+        line: 'module(load="imudp")'
+        state: present
+
+    - name: Раскомментировать порт UDP
+      lineinfile:
+        path: /etc/rsyslog.conf
+        regexp: '^#input\(type="imudp" port="514"\)'
+        line: 'input(type="imudp" port="514")'
+        state: present
+
+    - name: Раскомментировать модуль TCP
+      lineinfile:
+        path: /etc/rsyslog.conf
+        regexp: '^#module\(load="imtcp"\)'
+        line: 'module(load="imtcp")'
+        state: present
+
+    - name: Раскомментировать порт TCP
+      lineinfile:
+        path: /etc/rsyslog.conf
+        regexp: '^#input\(type="imtcp" port="514"\)'
+        line: 'input(type="imtcp" port="514")'
+        state: present
+
+    - name: Перезапустить rsyslog
+      service:
+        name: rsyslog
+        state: restarted
+
+# запускаем командой запускаем такой командой ansible-playbook config_rsyslog.conf.yml -k -K
+
+```
+
+делаем отправку критичного сообщения sadmin@alp-nginx-web:~$ logger -p crit "критичная ошибка"
+Видим что в на alp-log появился лог с сервера alp-nginx-web
+```
+sadmin@alp-log:~$ cat /var/log/rsyslog/alp-nginx-web/sadmin.log 
+2026-08-18T12:57:43.084909+00:00 alp-nginx-web sadmin Test from alp-nginx-web
+2026-08-18T13:07:00+00:00 alp-nginx-web sadmin: критичная ошибка
+sadmin@alp-log:~$ 
+```
+
+Переходим к пункту "1.3 Все логи с nginx должны уходить на удаленный сервер (локально только критичные)."  
+А вот здесь мы уже будем работать с логими именно nginx  
+То есть вообще все логи nginx отправляем на alp-log, но критичные еще дублируются на локальном сервере alp-nginx-web
+ 
+
+
+
 ```
 
 
